@@ -1,6 +1,7 @@
-#include <iostream>
+#include "server.hpp"
 
-int main() {
-    std::cout << "Hello, World!" << std::endl;
-    return 0;
+int main()
+{
+    Game g(time(0));
+    std::cout << g;
 }
