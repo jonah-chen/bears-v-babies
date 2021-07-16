@@ -3,11 +3,10 @@
 #include "server.hpp"
 #include <cstdlib>
 // creating a card
-Card::Card(unsigned char type)
+Card::Card(unsigned char type, unsigned char number)
+    : type(type), number(number), owner(DECK)
 {
-    this->type = type;
     id = rand();
-    owner = DECK;
 }
 
 bool Card::change_owner(char new_owner)

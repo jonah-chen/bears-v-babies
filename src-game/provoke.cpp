@@ -15,18 +15,16 @@ unsigned char Game::provoke(unsigned char type)
         return 0;
     }
 
-    unsigned char num_babies = babies[TYPE(type)].size();
-    if (!num_babies)
+    if (babies[TYPE(type)].empty())
     {
         std::cout << "cannot provoke 0 babies\n";
         return 0;
     }
 
-    // preliminary
-    unsigned char max_strength = 1, py_strength, b_py = 8;
-    auto first_baby = bb_s[TYPE(type)].begin() + bb_p[TYPE(type)];
-    unsigned char b_strength = std::accumulate(first_baby, first_baby+num_babies, 0); // baby army strength
-    bb_p[TYPE(type)] += num_babies;
+    unsigned char b_strength = 0, py_strength, max_strength = 1, b_py = 8;
+    // calculate baby army strength
+    for (unsigned int id : babies[TYPE(type)])
+        b_strength += baby_strengths[lut.at(id).number];
 
     for (int py = 0; py < 5; ++py)
     {
@@ -73,6 +71,11 @@ unsigned char Game::provoke(unsigned char type)
             lut.at(b).owner = b_py + 1;
         score[b_py].insert(score[b_py].end(), babies[TYPE(type)].begin(), babies[TYPE(type)].end());
     }
+
+    // tie, babies remain
+    if (b_py == 9)
+        return 19;
+
     // everyone dies, babies discarded
     for (unsigned int b : babies[TYPE(type)])
     {

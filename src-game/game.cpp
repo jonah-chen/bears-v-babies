@@ -1,5 +1,4 @@
 #include "server.hpp"
-#include <algorithm>
 #include <random>
 #define REP(I) for (int i = 0; i < (I); ++i)
 #define FORP for (int py = 0; py < 5; ++py)
@@ -10,22 +9,24 @@ Game::Game(unsigned long long seed) : turn(), int_turn()
     // set the game seed
     srand(seed);
 
+    // set passwords to all 0, signifying nobody is connected yet
     FORP
-        //pwds[py] = rand();
-        pwds[py] = 46;
+        pwds[py] = 0;
+
+    ready = false; // game is not ready yet
 
     // each player starts with bear card
     FORP
     {
-        Card c(BEAR);
+        Card c(BEAR, py);
         c.owner = py + 1;
         lut.insert({c.id,c}); // bear cards are added to the LUT
         hand[py].push_back(c.id);
     }
     
-    auto shuffle = [this](unsigned char type)
+    auto shuffle = [this](unsigned char type, unsigned char number)
     {
-        Card tmp(type);
+        Card tmp(type, number);
         lut.insert({tmp.id, tmp});
         deck.insert(tmp.id);
     };
@@ -33,52 +34,52 @@ Game::Game(unsigned long long seed) : turn(), int_turn()
     // body parts
     REP(7)
     {
-        shuffle(LAND);
-        shuffle(SEA);
-        shuffle(SKY);
+        shuffle(LAND, i);
+        shuffle(SEA, i);
+        shuffle(SKY, i);
     }
 
     REP(9)
-        shuffle(C_TORSO);
+        shuffle(C_TORSO, i);
 
     REP(3)
-        shuffle(TORSO);
+        shuffle(TORSO, i);
 
     REP(3)
-        shuffle(M_BODY);
+        shuffle(M_BODY, i);
 
     REP(2)
-        shuffle(AL_BODY);
+        shuffle(AL_BODY, i);
 
     REP(7)
-        shuffle(LEGS);
+        shuffle(LEGS, i);
 
     REP(10)
-        shuffle(ARM);
+        shuffle(ARM, i);
 
     // other cards
     REP(5)
-        shuffle(TOOL);
+        shuffle(TOOL, i);
 
     REP(2)
     {
-        shuffle(LULLABY);
-        shuffle(SWAP);
+        shuffle(LULLABY, i);
+        shuffle(SWAP, i);
     }
 
     REP(3)
     {
-        shuffle(MASK);
-        shuffle(HAT);
-        shuffle(DISMEMBER);
+        shuffle(MASK, i);
+        shuffle(HAT, i);
+        shuffle(DISMEMBER, i);
     }
 
     // babies
     REP(9)
     {
-        shuffle(-LAND);
-        shuffle(-SEA);
-        shuffle(-SKY);
+        shuffle(-LAND, i);
+        shuffle(-SEA, i);
+        shuffle(-SKY, i);
     }
 
     // players each draw to five cards
@@ -88,14 +89,7 @@ Game::Game(unsigned long long seed) : turn(), int_turn()
 
     // add wild provokes
     REP(2)
-        shuffle(WILD_PROVOKE);
-
-    // generate baby strengths
-    REP(3)
-    {
-        bb_s[i] = std::vector<unsigned char>{0,1,1,1,2,2,2,3,3};
-        std::shuffle(bb_s[i].begin(), bb_s[i].end(), std::mt19937(std::random_device()()));
-    }
+        shuffle(WILD_PROVOKE, i);
 }
 
 unsigned char Game::draw(unsigned char player)

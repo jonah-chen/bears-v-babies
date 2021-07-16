@@ -1,6 +1,7 @@
 // The game info that is stored on the server
 //
 
+#include <algorithm>
 #include <iostream>
 #include <vector>
 #include <set>
@@ -55,11 +56,11 @@
 
 struct Card
 {
-    unsigned char type;
+    unsigned char type, number;
     unsigned int id;
     char owner;
 
-    Card(unsigned char type);
+    Card(unsigned char type, unsigned char number);
     bool change_owner(char new_owner);
     inline bool operator==(const Card& other) { return this->id == other.id; }
     inline bool operator==(unsigned int id) { return this->id == id; }
@@ -99,13 +100,15 @@ struct Monster
 //template <unsigned char NUM_PLAYERS=5>
 class Game
 {
+    static constexpr unsigned char baby_strengths[9] {2,1,0,2,2,3,1,1,3};
+
     std::unordered_map<unsigned int, Card> lut; // lookup table is the only placer where the cards are stored on the server
 
     std::vector<Monster> board[5];
     std::set<unsigned int> deck, dumpster;
     std::vector<unsigned int> hand[5], score[5], babies[3];
-    std::vector<unsigned char> bb_s[3];
-    unsigned char turn, int_turn, bb_p[3]{}, pwds[5];
+    unsigned char turn, int_turn, pwds[5];
+    bool ready;
 
     bool discard(unsigned int id);
 
@@ -142,9 +145,12 @@ public:
     int play(unsigned char input[16]);
 
     // getters
-    inline unsigned char get_turn() { return turn; }
-    inline unsigned char get_int_turn() { return int_turn; }
+    inline unsigned char get_turn(void) { return turn; }
+    inline unsigned char get_int_turn(void) { return int_turn; }
     Card& query (unsigned int id);
+    std::vector<unsigned int> fetch_public(void);
+    std::vector<unsigned int> fetch_private(char player);
+    int connect(void);
 
     // io
     friend std::ostream& operator<<(std::ostream& os, const Game& game);

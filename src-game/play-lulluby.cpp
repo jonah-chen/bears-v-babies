@@ -23,8 +23,6 @@ unsigned char Game::play_lullaby(unsigned int lullaby, unsigned char type)
         return 0;
     }
 
-    bb_p[_ty] += (num_babies + 1) / 2; // advance the counter by half the babies rounding up
-
     // pop_back and insert to the dumpster
     for (int _ = 0; _ < (num_babies + 1) / 2; ++_)
     {

@@ -14,9 +14,15 @@
 
 unsigned char Game::_play(unsigned char input[16])
 {
+    if (!ready)
+    {
+        std::cout << "you cannot play until all players are connected\n";
+        return 0;
+    }
+
     if (input[3] != pwds[turn % 5])
     {
-        std::cout << "the passward is incorrect\n";
+        std::cout << "the password is incorrect\n";
         return 0;
     }
 
@@ -132,4 +138,46 @@ Card& Game::query (unsigned int id)
 {
     if (lut.find(id) != lut.end())
         return lut.at(id);
+}
+
+std::vector<unsigned int> Game::fetch_public()
+{
+    std::vector<unsigned int> public_cards;
+    for (auto it = lut.begin(); it != lut.end(); ++it)
+        if (it->second.owner < 0)
+            public_cards.push_back(it->first);
+    return public_cards;
+}
+
+std::vector<unsigned int> Game::fetch_private(char player)
+{
+    std::vector<unsigned int> private_cards;
+    for (auto it = lut.begin(); it != lut.end(); ++it)
+        if (it->second.owner == player)
+            private_cards.push_back(it->first);
+    return private_cards;
+}
+
+int Game::connect()
+{
+    unsigned char pass = 0;
+    while (!pass)
+        pass = rand();
+
+    unsigned char order[5] {0,1,2,3,4};
+    std::random_shuffle(order, order+5);
+
+    for (unsigned char i : order)
+    {
+        if (!pwds[i])
+        {
+            pwds[i] = pass;
+            for (unsigned char i : pwds)
+                if (!i)
+                    return pass;
+            ready = true;
+            return pass;
+        }
+    }
+    return 0;
 }

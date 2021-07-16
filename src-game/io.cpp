@@ -5,7 +5,7 @@
 
 std::ostream& operator<<(std::ostream& os, const Card& card)
 {
-    os << "id:" << card.id << ", owner:" << (int)card.owner << ", type:" << (int)card.type << " @" << &card << std::endl;
+    os << "id:" << card.id << ", owner:" << (int)card.owner << ", type:" << (int)card.type << ", no:" << card.number << " @" << &card << std::endl;
     return os;
 }
 
@@ -64,14 +64,6 @@ std::ostream& operator<<(std::ostream& os, const Game& game)
         os << "babies:\n";
         for (unsigned int id : game.score[py])
             os << game.lut.at(id);
-    }
-
-    os << "BABY STRENGTH INFO: ";
-    REP(3)
-    {
-        os << " " << ts[i] << "=";
-        for (auto it = game.bb_s[i].rbegin(); it != game.bb_s[i].rend(); ++it)
-            os << (int)*it;
     }
 
     os << "\nDECK INFO: remaining=" << game.deck.size() << "\n";
