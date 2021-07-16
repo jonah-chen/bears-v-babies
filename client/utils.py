@@ -2,9 +2,10 @@ REV_BASE62 = {'a': 49, 'b': 23, 'c': 29, 'd': 26, 'e': 22, 'f': 60, 'g': 50, 'h'
 
 FWD_BASE62 = {49: 'a', 23: 'b', 29: 'c', 26: 'd', 22: 'e', 60: 'f', 50: 'g', 30: 'h', 43: 'i', 48: 'j', 3: 'k', 34: 'l', 0: 'm', 61: 'n', 12: 'o', 59: 'p', 53: 'q', 31: 'r', 54: 's', 56: 't', 15: 'u', 27: 'v', 35: 'w', 46: 'x', 41: 'y', 44: 'z', 57: 'A', 42: 'B', 6: 'C', 20: 'D', 14: 'E', 55: 'F', 1: 'G', 58: 'H', 45: 'I', 37: 'J', 19: 'K', 38: 'L', 4: 'M', 2: 'N', 47: 'O', 28: 'P', 51: 'Q', 24: 'R', 10: 'S', 17: 'T', 9: 'U', 33: 'V', 13: 'W', 7: 'X', 32: 'Y', 5: 'Z', 18: '0', 39: '1', 8: '2', 21: '3', 11: '4', 16: '5', 36: '6', 40: '7', 25: '8', 52: '9'}
 
-CARD_TYPES = {0: 'NONE', 1: 'TOOL', 2: 'LULLABY', 3: 'HAT', 4: 'MASK', 5: 'SWAP', 6: 'DISMEMBER', 7: 'WILD_PROVOKE', 8: 'C_TORSO', 9: 'TORSO', 10: 'M_BODY', 11: 'AL_BODY', 12: 'LEGS', 13: 'ARM', 17: 'LAND', 19: 'SEA', 23: 'SKY', 29: 'BEAR'}
+CARD_TYPES = {0: 'NONE', 1: 'TOOL', 2: 'LULLABY', 3: 'HAT', 4: 'MASK', 5: 'SWAP', 6: 'DISMEMBER', 7: 'WILD_PROVOKE', 8: 'C_TORSO', 9: 'TORSO', 10: 'M_BODY', 11: 'AL_BODY', 12: 'LEGS', 13: 'ARM', 17: 'LAND', 23: 'SKY', 29: 'BEAR'}
 
 ACTIONS = {1: 'DRAW', 2: 'PLAY_CARD', 200: 'PROVOKE', 240: 'DUMPSTER_DIVE'}
+
 
 def convert_62_f(x):
     s = ""
@@ -19,6 +20,8 @@ def convert_62_r(s):
         x *= 62
         x += REV_BASE62[c]
     return x
+
+
 
 
 if __name__ == '__main__':

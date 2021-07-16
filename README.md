@@ -19,15 +19,16 @@ python client.py [code]
 ### Completed
 
 1. Game
+2. Server networking using python socket mainly complete, including the communitation protocalls.
+3. Client sending complete. Clients can download but the downloaded data are yet to be processed.
+4. Basic prototype level security. Numbers are **very** small and simple algorithms used for testing purposes.
 
 ### TODO
 
-1. Build python module for the full game server side.
-2. Build python module for the full game client side.
-3. Write server and client programs.
-4. Implement some basic security.
-5. Implement the GUI for the client.
-6. Debug and test
+1. Write server and client programs.
+2. Implement some basic security.
+3. Implement the GUI for the client.
+4. Debug and test
 
 
 ### References

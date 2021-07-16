@@ -5,7 +5,7 @@
 
 std::ostream& operator<<(std::ostream& os, const Card& card)
 {
-    os << "id:" << card.id << ", owner:" << (int)card.owner << ", type:" << (int)card.type << ", no:" << card.number << " @" << &card << std::endl;
+    os << "id:" << card.id << ", owner:" << (int)card.owner << ", type:" << (int)card.type << ", no:" << (int)card.number << " @" << &card << std::endl;
     return os;
 }
 

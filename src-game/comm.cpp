@@ -140,13 +140,23 @@ Card& Game::query (unsigned int id)
         return lut.at(id);
 }
 
-std::vector<unsigned int> Game::fetch_public()
+std::vector<std::vector<unsigned int>> Game::fetch_public()
 {
-    std::vector<unsigned int> public_cards;
-    for (auto it = lut.begin(); it != lut.end(); ++it)
-        if (it->second.owner < 0)
-            public_cards.push_back(it->first);
-    return public_cards;
+    std::vector<std::vector<unsigned int>> monsters_list;
+    for (int py = 0; py < 5; ++py)
+    {
+        for (Monster m : board[py])
+        {
+            std::vector<unsigned int> monster_vec;
+            unsigned int* mp = (unsigned int*)&m;
+            monster_vec.push_back(*mp==NID ? 0 : *mp); // add the head first always
+            for (int i = 1; i < 9; ++i)
+                if (mp[i] != NID)
+                    monster_vec.push_back(mp[i]);
+            monsters_list.push_back(monster_vec);
+        }
+    }
+    return monsters_list;
 }
 
 std::vector<unsigned int> Game::fetch_private(char player)
@@ -172,11 +182,11 @@ int Game::connect()
         if (!pwds[i])
         {
             pwds[i] = pass;
-            for (unsigned char i : pwds)
-                if (!i)
-                    return pass;
+            for (unsigned char k : pwds)
+                if (!k)
+                    return pass + (i << 8);
             ready = true;
-            return pass;
+            return pass + (i << 8);
         }
     }
     return 0;

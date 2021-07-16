@@ -148,10 +148,13 @@ public:
     inline unsigned char get_turn(void) { return turn; }
     inline unsigned char get_int_turn(void) { return int_turn; }
     Card& query (unsigned int id);
-    std::vector<unsigned int> fetch_public(void);
+    std::vector<std::vector<unsigned int>> fetch_public(void);
     std::vector<unsigned int> fetch_private(char player);
-    int connect(void);
+    inline unsigned int fetch_babies(void) { return babies[0].size() + (babies[1].size() << 8) + (babies[2].size() << 16); }
+    inline std::set<unsigned int>& get_dumpster(void) { return dumpster; }
 
+    int connect(void);
+    
     // io
     friend std::ostream& operator<<(std::ostream& os, const Game& game);
 };
