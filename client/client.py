@@ -4,6 +4,10 @@ from threading import Thread
 from utils import convert_62_r
 import argparse
 
+# GUI
+import sys
+
+# The player class controls the player interaction with the server.
 class Player:
     def __init__(self, game_code):
         game_num = convert_62_r(game_code)
@@ -17,10 +21,10 @@ class Player:
         f_msg = self.client.recv(2)
         self.pwd = f_msg[0]
         self.player_no = f_msg[1] + 1
-        print(self.pwd)
         if not self.pwd:
-            raise Exception("The game is full. Please try connecting later")
-        
+            print("The game is full. Please try connecting later")
+            sys.exit()
+
         # card info that the player knows about
         self.dumpster_info = set()
         self.monster_info = {} # map from the head to monster
@@ -53,7 +57,8 @@ class Player:
             msg = self.client.recv(5)
             print(msg)
             if not msg:
-                raise Exception("Connection to the server is lost.")
+                print("Connection to the server is lost.")
+                sys.exit()
             if   msg[0] == 0x11:
                 self.dumpster_info.add(int.from_bytes(msg[1:5],"big"))
             elif msg[0] == 0x12:
@@ -81,13 +86,13 @@ class Player:
     
     
     def provokeBTN(self, ty):
-        if ty == 'land':
+        if ty == 'land' or ty == 0:
             self.client.send(bytes([200, 17, 1, self.pwd]) + (b'\x00'*12))
             return
-        if ty == 'sea':
+        if ty == 'sea' or ty == 1:
             self.client.send(bytes([200, 19, 1, self.pwd]) + (b'\x00'*12))
             return
-        if ty == 'sky':
+        if ty == 'sky' or ty == 2:
             self.client.send(bytes([200, 23, 1, self.pwd]) + (b'\x00'*12))
             return 
         
@@ -100,6 +105,8 @@ class Player:
     
     def dumpster_dive(self, target):
         self.client.send(bytes([240, 0, 1, self.pwd]) + target.to_bytes(4,"big") + (b'\x00'*8))
+
+
 
 
 if __name__ == '__main__':

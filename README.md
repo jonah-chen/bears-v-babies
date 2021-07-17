@@ -26,9 +26,8 @@ python client.py [code]
 ### TODO
 
 1. Write server and client programs.
-2. Implement some basic security.
-3. Implement the GUI for the client.
-4. Debug and test
+2. Implement the GUI for the client.
+3. Debug and test
 
 
 ### References
