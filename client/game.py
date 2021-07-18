@@ -36,14 +36,14 @@ def rect_c(pos,main_pos=((0,0),(1,1))):
     
 def set_res(width):
     global WIDTH, HEIGHT
-    WIDTH = WIDTH
-    HEIGHT = WIDTH * 9/16
+    WIDTH = width
+    HEIGHT = width * 9/16
 
 # Some Constants
 
-CARD_SIZE = (0.15,0.15)
+CARD_SIZE = (0.15,0.24)
 
-MAIN_BOARD_POS = ((0.25,0.25),(0.75,0.75))
+MAIN_BOARD_POS = ((0.2,0.28),(0.8,0.72))
 PLAYER_HAND_POS = (((MAIN_BOARD_POS[0][0]+1)/2,MAIN_BOARD_POS[1][1]),(1,1))
 PLAYER_BOARD_POS = ((MAIN_BOARD_POS[0][0],MAIN_BOARD_POS[1][1]),((MAIN_BOARD_POS[0][0]+1)/2,1))
 WEST_POS = ((0,MAIN_BOARD_POS[0][1]),(MAIN_BOARD_POS[0][0],1))
@@ -136,7 +136,10 @@ CARD_BACK = pygame.transform.scale(
                 pygame.image.load(os.path.join("assets", "back.jpg")),
                 coords(0.15,0.15))
 
-# procedurally generate code for importing the images for each card
+
+# Add dynamic hitboxes
+
+HB_DYNAMIC = dict() # map hitbox object to card ID
 
 
 # Initialize the client and connect to server
@@ -157,6 +160,17 @@ while running:
     window.fill((0,0,0))    
     window.blit(BACKGROUND, (0,0))
     window.blit(GAME_BOARD, coords(MAIN_BOARD_POS[0]))
+    
+    # startx is determined by the hand area
+    # cardspace is determined by hand area too
+    startx = PLAYER_HAND_POS[0][0]
+    cardspace = 0.05
+    handcards = 0
+    # render cards in hand
+    for _id, card in player.hand_info.items():
+        if type(card) is tuple: # the tuple will be card number, card type
+            window.blit(CARDS[card[1]][card[0]], coords(startx+cardspace*handcards,PLAYER_HAND_POS[0][1]))
+            handcards += 1
 
     # check for user actions
     if pygame.mouse.get_pressed()[0]:

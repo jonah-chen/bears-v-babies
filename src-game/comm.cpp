@@ -40,70 +40,71 @@ unsigned char Game::_play(unsigned char input[16])
 
     switch(input[0])
     {
-        case DRAW:
-            return draw();
-        case PLAY_CARD:
-            if (lut.find(target)==lut.end())
-            {
-                std::cout << "the primary target is not a valid card in the game\n";
-                return 0;
-            }
-            if (lut.at(target).owner != (turn % 5) + 1)
-            {
-                std::cout << "you cannot play a card that you don't own\n";
-                return 0;
-            }
-            switch(lut.at(target).type)
-            {
-                case BEAR: case SKY: case SEA: case LAND:
-                    return play_head(target);
-                case LULLABY:
-                    return play_lullaby(target, input[1]);
-                case SWAP:
-                    if (lut.find(h1)==lut.end() or lut.find(h2)==lut.end())
-                    {
-                        std::cout << "one(+) of the two heads is not a valid card in the game.\n";
-                        return 0;
-                    }
-                    return play_swap(target, h1, h2);
-                case DISMEMBER:
-                    if (lut.find(h1)==lut.end())
-                    {
-                        std::cout << "the card you are trying to chop off does not exist.\n";
-                        return 0;
-                    }
-                    return play_dismember(target, h1);
-                case MASK:
-                    if (lut.find(h1)==lut.end())
-                    {
-                        std::cout << "the card you are trying to mask does not exist.\n";
-                        return 0;
-                    }
-                    return play_head(h1, target);
-                default: // the default case is playing as body part
-                    if (lut.find(h1)==lut.end())
-                    {
-                        std::cout << "the body attachment does not exist.\n";
-                        return 0;
-                    }
-                    if (lut.at(h1).type != BEAR and lut.at(h1).type != SEA and lut.at(h1).type != LAND and lut.at(h1).type != SKY)
-                    {
-                        std::cout << "the head the body tried to attach to is not a valid head card\n";
-                    }
-                    return play_part(target, h1, input[2]==RIGHT ? RIGHT : LEFT);
-            }
-        case PROVOKE:
-            tmp = provoke(input[1]);
-            return int_turn > 20 ? 19 : tmp;
-        case DUMPSTER_DIVE:
-            if (lut.find(target)==lut.end())
-            {
-                std::cout << "the primary target is not a valid card in the game\n";
-                return 0;
-            }
-            return dumpster_dive(target);
-        default:
+    case DRAW:
+        return draw();
+    case PLAY_CARD:
+        if (lut.find(target)==lut.end())
+        {
+            std::cout << "the primary target is not a valid card in the game\n";
             return 0;
+        }
+        if (lut.at(target).owner != (turn % 5) + 1)
+        {
+            std::cout << "you cannot play a card that you don't own\n";
+            return 0;
+        }
+        switch(lut.at(target).type)
+        {
+        case BEAR: case SKY: case SEA: case LAND:
+            return play_head(target);
+        case LULLABY:
+            return play_lullaby(target, input[1]);
+        case SWAP:
+            if (lut.find(h1)==lut.end() or lut.find(h2)==lut.end())
+            {
+                std::cout << "one(+) of the two heads is not a valid card in the game.\n";
+                return 0;
+            }
+            return play_swap(target, h1, h2);
+        case DISMEMBER:
+            if (lut.find(h1)==lut.end())
+            {
+                std::cout << "the card you are trying to chop off does not exist.\n";
+                return 0;
+            }
+            return play_dismember(target, h1);
+        case MASK:
+            if (lut.find(h1)==lut.end())
+            {
+                std::cout << "the card you are trying to mask does not exist.\n";
+                return 0;
+            }
+            return play_head(h1, target);
+        default: // the default case is playing as body part
+            if (lut.find(h1)==lut.end())
+            {
+                std::cout << "the body attachment does not exist.\n";
+                return 0;
+            }
+            if (lut.at(h1).type != BEAR and lut.at(h1).type != SEA and lut.at(h1).type != LAND and lut.at(h1).type != SKY)
+            {
+                std::cout << "the head the body tried to attach to is not a valid head card\n";
+                return 0;
+            }
+            return play_part(target, h1, input[2]==RIGHT ? RIGHT : LEFT);
+        }
+    case PROVOKE:
+        tmp = provoke(input[1]);
+        return int_turn > 20 ? 19 : tmp;
+    case DUMPSTER_DIVE:
+        if (lut.find(target)==lut.end())
+        {
+            std::cout << "the primary target is not a valid card in the game\n";
+            return 0;
+        }
+        return dumpster_dive(target);
+    default:
+        return 0;
     }
 }
 
@@ -111,10 +112,14 @@ int Game::play(unsigned char input[16])
 {
     unsigned char p_turn = 2;
     unsigned char output = _play(input);
-    if (output == 255)
-        int_turn -= 18;
-    else
+    switch (output)
     {
+    case 255:
+        int_turn -= 18;
+        return (int)(int_turn + ((unsigned int)turn << 8));
+    case 0:
+        return -500;
+    default:
         int_turn += output;
         // find how many turns a player has
         for (Monster m : board[turn % 5])
@@ -130,8 +135,8 @@ int Game::play(unsigned char input[16])
             turn++;
             int_turn = 0;
         }
+        return (int)(int_turn + ((unsigned int)turn << 8));
     }
-    return (int)(int_turn + ((unsigned int)turn << 8));
 }
 
 Card& Game::query (unsigned int id)

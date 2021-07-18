@@ -4,8 +4,8 @@ from threading import Thread
 from utils import convert_62_r
 import argparse
 
-# GUI
 import sys
+from bidict import bidict
 
 # The player class controls the player interaction with the server.
 class Player:
@@ -29,7 +29,8 @@ class Player:
         self.dumpster_info = set()
         self.monster_info = {} # map from the head to monster
         self.head_map = {} # map from id to head
-        self.hand_info = set()
+        
+        self.hand_info = bidict()
 
         # baby counts to display in the middle
         self.land_count = 0
@@ -39,7 +40,9 @@ class Player:
         # turn and ply count to display on the side
         self.turn = 0
         self.ply = 0
-
+        
+        # some RNG that goes from 0 to 0xff
+        self.rng = 0
         
         # start the listening thread
         self.ear = Thread(target=self.listening)
@@ -62,10 +65,16 @@ class Player:
             if   msg[0] == 0x11:
                 self.dumpster_info.add(int.from_bytes(msg[1:5],"big"))
             elif msg[0] == 0x12:
-                self.hand_info.add(int.from_bytes(msg[1:5],"big"))
+                card_id = int.from_bytes(msg[1:5],"big")
+                # check
+                if not card_id in self.hand_info.keys():
+                    self.hand_info[card_id] = self.rng
+                    self.client.send(bytes([0x20,0,self.rng,self.pwd]) + msg[1:5] + b'\x00'*8)
+                    self.rng = (self.rng + 1) % 256
             elif msg[0] == 0x25:
                 # need to do some rendering stuff to the screen
-                pass
+                identifier = msg[4]
+                self.hand_info[self.hand_info.inv[identifier]] = (msg[1], msg[2])
             elif msg[0] == 0x34:
                 self.land_count = msg[1]
                 self.sea_count = msg[2]

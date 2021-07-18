@@ -7,68 +7,68 @@ bool Monster::add_part(const Card& card, const unsigned char dir)
 {
     switch(card.type)
     {
-        // adding a new head
-        case LAND: case SEA: case SKY: case BEAR:
-            if (head EXIST)
-                return false;
-            head = card.id;
-            type = card.type;
-            return true;
-
-        // adding new body
-        case C_TORSO: case TORSO: case M_BODY: case AL_BODY:
-            if (head NEXIST or body EXIST)
-                return false;
-            body = card.id;
-            body_type = card.type;
-            return true;
-
-        // adding new legs
-        case LEGS:
-            if (legs EXIST or (body_type!=TORSO and body_type!=C_TORSO))
-                return false;
-            legs = card.id;
-            return true;
-        
-        // adding new arms
-        case ARM:
-            if (body_type!=C_TORSO and body_type!=AL_BODY)
-                return false;
-            if (dir==LEFT and larm NEXIST)
-            {
-                larm = card.id;
-                return true;
-            }
-            if (dir==RIGHT and rarm NEXIST)
-            {
-                rarm = card.id;
-                return true;
-            }
-        // adding new tool
-        case TOOL:
-            if (dir==LEFT and ltool NEXIST and (larm EXIST or body_type==TORSO or body_type==M_BODY))
-            {
-                ltool = card.id;
-                return true;
-            }
-            if (dir==RIGHT and rtool NEXIST and (rarm EXIST or body_type==TORSO or body_type==M_BODY))
-            {
-                rtool = card.id;
-                return true;
-            }
+    // adding a new head
+    case LAND: case SEA: case SKY: case BEAR:
+        if (head EXIST)
             return false;
-        case HAT:
-            if (head NEXIST or hat EXIST)
-                return false;
-            hat = card.id;
-            return true;
-        case MASK:
-            if (mask EXIST or head NEXIST)
-                return false;
-            mask = card.id;
-            return true;
-        default:
+        head = card.id;
+        type = card.type;
+        return true;
+
+    // adding new body
+    case C_TORSO: case TORSO: case M_BODY: case AL_BODY:
+        if (head NEXIST or body EXIST)
             return false;
+        body = card.id;
+        body_type = card.type;
+        return true;
+
+    // adding new legs
+    case LEGS:
+        if (legs EXIST or (body_type!=TORSO and body_type!=C_TORSO))
+            return false;
+        legs = card.id;
+        return true;
+    
+    // adding new arms
+    case ARM:
+        if (body_type!=C_TORSO and body_type!=AL_BODY)
+            return false;
+        if (dir==LEFT and larm NEXIST)
+        {
+            larm = card.id;
+            return true;
+        }
+        if (dir==RIGHT and rarm NEXIST)
+        {
+            rarm = card.id;
+            return true;
+        }
+    // adding new tool
+    case TOOL:
+        if (dir==LEFT and ltool NEXIST and (larm EXIST or body_type==TORSO or body_type==M_BODY))
+        {
+            ltool = card.id;
+            return true;
+        }
+        if (dir==RIGHT and rtool NEXIST and (rarm EXIST or body_type==TORSO or body_type==M_BODY))
+        {
+            rtool = card.id;
+            return true;
+        }
+        return false;
+    case HAT:
+        if (head NEXIST or hat EXIST)
+            return false;
+        hat = card.id;
+        return true;
+    case MASK:
+        if (mask EXIST or head NEXIST)
+            return false;
+        mask = card.id;
+        return true;
+    default:
+        return false;
     }
 }
 

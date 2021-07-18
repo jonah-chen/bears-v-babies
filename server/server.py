@@ -138,7 +138,7 @@ Server messages: Fixed width (5 bytes)
 
         while 1:
             msg = conn.recv(16)
-            
+            logging.info(f"recieved {msg} from {addr}")            
             if not conn in self.connections:
                 logging.error(f"Connection at {addr} not in the connections list.")
                 conn.close()
@@ -150,7 +150,7 @@ Server messages: Fixed width (5 bytes)
                     break
                 
                 # query request
-                if (msg[0] == b'\x20'):
+                if (msg[0] == 0x20):
                     # send back the card details
                     card_number, card_type, card_owner = peek(self.ptr, int.from_bytes(msg[4:8],"big"))
                     
@@ -162,19 +162,22 @@ Server messages: Fixed width (5 bytes)
                     else:
                         lead = 0x25
 
-                    conn.send(bytes([lead, card_number, card_type, card_owner+128, 0]))                  
+                    conn.send(bytes([lead, card_number, card_type, card_owner+128, msg[2]])) # send back msg[2] as it may be used as identifier sometimes                
                      
                 # playing cards/performing in-game level actions
                 else:
                     logging.info(Game.decrypt_16(msg))
                     # broadcast public data
-                    self.broadcast(play_turn(self.ptr, msg))
-                    # send private data
-                    priv_data = fetch_private(self.ptr, 1+self.user_map[addr])
-                    logging.info(f"sent {len(priv_data)} private cards to player {self.user_map[addr]+1}")
-                    for card in priv_data:
-                        conn.send(b'\x12' + card.to_bytes(4,"big"))
-
+                    output = play_turn(self.ptr, msg)
+                    if output >= 0:
+                        self.broadcast(output)
+                        # send private data
+                        priv_data = fetch_private(self.ptr, 1+self.user_map[addr])
+                        logging.info(f"sent {len(priv_data)} private cards to player {self.user_map[addr]+1}")
+                        for card in priv_data:
+                            conn.send(b'\x12' + card.to_bytes(4,"big"))
+                    else:
+                        logging.warning(f"invalid input to play_turn is sent to the server but not executed. error code {output}.")
                     # ALL debug info if logging level is debug
                     if logging.getLogger(__name__).isEnabledFor(logging.DEBUG):
                         debug(self.ptr)
@@ -184,6 +187,9 @@ Server messages: Fixed width (5 bytes)
 
 
     def broadcast(self, turn_info=None):
+        
+        if len(self.connections) < 0:
+            logging.warning(f"Cannot broadcast because only {len(self.connections)}/5 players are connected.")
         # Send public card info
         dumpster_info = fetch_dumpster(self.ptr)
         for card in dumpster_info:
@@ -207,10 +213,11 @@ Server messages: Fixed width (5 bytes)
         logging.info(f"broadcasted {len(monster_info)} monsters")
 
         # Send current turn info
-        if turn_info:
+        if turn_info > 0:
             for conn in self.connections:
-                conn.send(b'\x3a' + bytes([turn_info % 256, turn_info // 256, 0, 0]))
-        
+                conn.send(b'\x3a' + bytes([turn_info % 256, (turn_info >> 8), 0, 0]))
+        else:
+            logging.error("something died")
         # Send baby info
         baby_info = fetch_babies(self.ptr)
         for conn in self.connections:
