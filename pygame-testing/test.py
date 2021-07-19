@@ -17,7 +17,7 @@ window = pygame.display.set_mode((WIDTH,HEIGHT))
 
 
 BACKGROUND = pygame.transform.scale(
-                pygame.image.load("../assets/bkgd.jpg"), 
+                pygame.image.load("../client/assets/bkgd.jpg"), 
                 coords(1, 1)
                 )
 
@@ -26,7 +26,7 @@ BACKGROUND = pygame.transform.scale(
 
 pygame.display.set_caption("bears-v-babies-client")
 CHESS_PIECE = pygame.transform.scale(
-                pygame.image.load("../assets/chess_king.jpg"), 
+                pygame.image.load("../client/assets/chess_king.jpg"), 
                 (coords(0.15, 0.15))
                 )
 
@@ -45,9 +45,13 @@ while run:
             run = False
     window.fill((0,0,0))
     window.blit(BACKGROUND, (0,0))
-    window.blit(CHESS_PIECE, coords(x,y))
+    chess_rect = CHESS_PIECE.get_rect(topleft=coords(x,y))
+    window.blit(CHESS_PIECE, chess_rect)
     if pygame.mouse.get_pressed()[0]:
-        x, y = inv_c(pygame.mouse.get_pos())
+        # x, y = inv_c(pygame.mouse.get_pos())
+        if chess_rect.collidepoint(pygame.mouse.get_pos()):
+            print("pressed")
     pygame.display.update()
 
+print(chess_rect)
 pygame.quit()

@@ -8,10 +8,10 @@ def img(x,y):
     return (x*WIDTH, y*HEIGHT, (x+1)*WIDTH, (y+1)*HEIGHT)
 
 base_img = Image.open("all-cards.jpeg")
-base_img.putalpha(192)
+base_img.putalpha(224)
 
 i2 = Image.open("cards2.png")
-i2.putalpha(192)
+i2.putalpha(224)
 
 for i in range(5):
     bear = base_img.crop(img(i,0))
@@ -66,16 +66,16 @@ for i in range(3):
     land = base_img.crop(img(i,6))
     land.save(f"LAND/{i+4}.png")
 
-for i in range(7):
+for i in range(6):
     land = base_img.crop(img(i+3,6))
     land.save(f"SKY/{i}.png")
 
-l1, l2 = base_img.crop(img(1,9)), base_img.crop(img(2,0))
+l1, l2 = base_img.crop(img(9,1)), base_img.crop(img(0,2))
 l1.save(f"LULLABY/0.png")
 l2.save(f"LULLABY/1.png")
 
 count = 0
-for i in [(8,0),(8,1),(1,1),(1,0),(2,1)]:
+for i in [(8,0),(9,0),(1,1),(0,1),(1,2)]:
     tool = base_img.crop(img(i[0],i[1]))
     tool.save(f"TOOL/{count}.png")
     count += 1

@@ -5,6 +5,7 @@ os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 
 import argparse
 import pygame
+import sys
 
 from client import Player
 from threading import Thread
@@ -41,7 +42,11 @@ def set_res(width):
 
 # Some Constants
 
-CARD_SIZE = (0.15,0.24)
+CARD_SIZE = (0.12,0.23)
+CARD_SIZE_S = (0.09,0.175)
+X_FIT = 8
+Y_FIT = 4
+
 
 MAIN_BOARD_POS = ((0.2,0.28),(0.8,0.72))
 PLAYER_HAND_POS = (((MAIN_BOARD_POS[0][0]+1)/2,MAIN_BOARD_POS[1][1]),(1,1))
@@ -66,15 +71,21 @@ SKY_BABY_ARMY  = ((0.544,0.189),(0.690,0.684))
 parser = argparse.ArgumentParser()
 parser.add_argument("game_code", type=str)
 parser.add_argument("--width", help="Custom width of the window. Defaults to 1920 pixels.", type=int)
+parser.add_argument("--tps", help="Ticks per second of the client. Defaults to 10. DEBUG OPTION DO NOT CHANGE UNLESS YOU KNOW EXACTLY WHAT YOU ARE DOING!", type=int)
 args = parser.parse_args()
 if args.width:
     set_res(args.width)
     print(f"width set to {args.width}")
+if args.tps:
+    TPS = args.tps
+    print(f"speed set to {TPS}tps")
 
 # Initialize pygame
 pygame.init()
 window = pygame.display.set_mode(coords(1,1))
-pygame.display.set_caption("Bears versus Babies Client version 0.0.1")
+pygame.display.set_caption("Bears versus Babies Client version 0.0.2")
+font = pygame.font.SysFont("comicsans", 32, True)
+bigfont = pygame.font.SysFont("comicsans", 96, True)
 clock = pygame.time.Clock()
 
 # Create "hitboxes"
@@ -133,13 +144,65 @@ CARDS = {
 }
 
 CARD_BACK = pygame.transform.scale(
-                pygame.image.load(os.path.join("assets", "back.jpg")),
-                coords(0.15,0.15))
+                pygame.image.load(os.path.join("assets", "back.png")),
+                coords(CARD_SIZE))
+
+CARD_BACK_S = pygame.transform.scale(
+                pygame.image.load(os.path.join("assets", "back.png")),
+                coords(CARD_SIZE_S))
+
+BABY_SPACE = 0.017
+
+TURN_INDICATOR_POS = [
+    (0.5, 0.95),
+    (0.95, 0.5),
+    (0.67, 0.05),
+    (0.33, 0.05),
+    (0.05, 0.5)
+]
+
+PLY_INDICATOR_X0 = 0.85
+PLY_INDICATOR_Y = 0.97
+
+# create card sprites
+class Card(pygame.sprite.Sprite):
+    def __init__(self, card_id, card, pos):
+        """Initializes with the card (number,type) and RELATIVE position pos"""
+        super().__init__()
+        self.id = card_id
+        self.image = CARDS[card[1]][card[0]]
+        self.rect = self.image.get_rect(topleft=coords(pos))
+
+    def click(self, player):
+        player.playcard(self.id)
+    
+    def select1(self, player):
+        player.t1 = self.id
+    
+    def select2(self, player):
+        player.t2 = self.id
 
 
-# Add dynamic hitboxes
+def get_dumpster_sprite(dumpster_bidict, page=0):
+    disp_cards = pygame.sprite.Group()
+    _count = 0
+    
+    ipp = X_FIT*Y_FIT-1
 
-HB_DYNAMIC = dict() # map hitbox object to card ID
+    for _id, card in dumpster_bidict.items():
+        if _count >= ipp*page and type(card) is tuple:
+            count = _count % ipp
+            xpos = (count % X_FIT) / X_FIT
+            ypos = (count // X_FIT) / Y_FIT
+            if count < ipp*(page+1):
+                spt = Card(_id,card,(xpos,ypos))
+                disp_cards.add(spt)
+            elif count == ipp*(page+1):
+                disp_cards.add(Card(-1,CARD_BACK,(xpos,ypos)))
+                break
+        _count += 1
+
+    return disp_cards
 
 
 # Initialize the client and connect to server
@@ -148,56 +211,163 @@ player = Player(args.game_code)
 # Start the GUI
 running = True
 left_button_pressed = False
+selected_card = None # This is the card that is selected on the previous frame.
+
+mode = 0
+
 while running:
     clock.tick(TPS)
     
-    # event checking
+    # event checking for safe quit/disconnect
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            run = False
+            # call the destructor and sends the disconnect message to the server
+            running = False
+            break
+        if event.type == pygame.KEYDOWN:
+            # pressing escape will return to normal mode
+            if event.key == pygame.K_ESCAPE:
+                mode = 0
+    if not running:
+        break
     
+    # acquire mouse position
+    pos = pygame.mouse.get_pos()
+
     # render
-    window.fill((0,0,0))    
-    window.blit(BACKGROUND, (0,0))
-    window.blit(GAME_BOARD, coords(MAIN_BOARD_POS[0]))
+    if mode == 0: # normal mode
+        window.fill((0,0,0))
+        window.blit(BACKGROUND, (0,0))
+        window.blit(GAME_BOARD, coords(MAIN_BOARD_POS[0]))
+
+        # startx is determined by the hand area
+
+        # cardspace is determined by hand area too
+        startx = PLAYER_HAND_POS[0][0]
+        card_space = 0.05
+        card_counter = 0
+        
+        # render cards in hand and make hitboxes
+        hand_cards = []
+        for _id, card in player.hand_info.items():
+            if type(card) is tuple: # the tuple will be card number, card type
+                spt = Card(_id,card,(startx+card_space*card_counter,PLAYER_HAND_POS[0][1]))
+                hand_cards.append(spt)
+                window.blit(spt.image, spt.rect) 
+                card_counter += 1
+        # select the main card to display on top
+        
+        # if the selected card doesn't exist or if the mouse is no longer over it, update it
+        # otherwise do nothing for this step
+        
+        if selected_card is not None and not selected_card.rect.collidepoint(pos):
+            selected_card = None
+        if selected_card is None:
+            for card in hand_cards[::-1]:
+                if card.rect.collidepoint(pos):
+                    # this card is the card selected. 
+                    # draw a red rectangle around it and render it on top, including the hitbox.
+                    selected_card = card
+                    break
+        # display on top
+        if selected_card is not None:
+            pygame.draw.rect(window, (255,255,255), selected_card.rect, width=0)
+            pygame.draw.rect(window, (255,0,0), selected_card.rect, width=3)
+            window.blit(selected_card.image, selected_card.rect)
+
+        card_counter = 0
+        
+        for card in list(player.dumpster_info.values()):
+            _pos = rect_c(((0.04,0.02*card_counter),(1,1)),MAIN_BOARD_POS)
+            try:
+                window.blit(pygame.transform.scale(CARDS[card[1]][card[0]], coords(CARD_SIZE_S)), (_pos[0], _pos[1]))
+            except TypeError:
+                print("Something really bad happened with", _pos)
+            card_counter += 1
+            if card_counter > 32:
+                break
+        
+        # render babies
+        for i in range(player.land_count):
+            _loc = rect_c(LAND_BABY_ARMY, MAIN_BOARD_POS)
+            window.blit(CARD_BACK_S, (_loc[0],_loc[1]+i*WIDTH*BABY_SPACE))
+        for i in range(player.sea_count):
+            _loc = rect_c(SEA_BABY_ARMY, MAIN_BOARD_POS)
+            window.blit(CARD_BACK_S, (_loc[0],_loc[1]+i*WIDTH*BABY_SPACE))
+        for i in range(player.sky_count):
+            _loc = rect_c(SKY_BABY_ARMY, MAIN_BOARD_POS)
+            window.blit(CARD_BACK_S, (_loc[0],_loc[1]+i*WIDTH*BABY_SPACE))
+        
+        # render score
+        score_text = bigfont.render(str(len(player.score_info)), 1, (255,0,0))
+        window.blit(score_text, (0,0))
+
+        # check for user actions
+        if pygame.mouse.get_pressed()[0]:
+            if not left_button_pressed:
+                # do collision detection
+                left_button_pressed = True
+                
+                for r in HB_DRAW:
+                    if r.collidepoint(pos):
+                        player.drawBTN()
+
+                if HB_DUMPSTER_DIVE.collidepoint(pos):
+                    mode = 1 # The board will now switch to the dumpster diving menu
+
+                for r in range(3):
+                    if HB_PROVOKE[r].collidepoint(pos):
+                        player.provokeBTN(r)
+
+                if selected_card is not None:
+                    selected_card.click(player)
+                    selected_card = None
+                
+        else:
+            left_button_pressed = False
+
+
+        # render turn and ply indicators on the very top
+        turn_ind = TURN_INDICATOR_POS[(player.turn + 5 - player.player_no + 1) % 5]
+        pygame.draw.circle(window, (18,220,150), coords(turn_ind), int(0.04*HEIGHT))
+
+        for x in range(7):
+            pygame.draw.circle(window, (224,192,0), coords(PLY_INDICATOR_X0+x*0.01, PLY_INDICATOR_Y), int(0.005*WIDTH), width=2*int(x >= player.ply))
+
+    elif mode > 0: # dumpster dive mode
+        window.fill((224,0,64)) 
+        # render all dumpster cards
+
+        dumpster_cards = get_dumpster_sprite(player.dumpster_info, page=mode-1)
+        dumpster_cards.draw(window)
+        
+        if pygame.mouse.get_pressed()[0]:
+            if not left_button_pressed:
+                left_button_pressed = True
+                
+                something_pressed = False
+                for card in dumpster_cards:
+                    if card.rect.collidepoint(pos):
+                        something_pressed = True 
+                        if card.id < 0:
+                            mode += 1 # player selected next page
+                        else:
+                            player.dumpster_dive(card.id)
+                            mode = 0
+                        break
+                # if player doesn't collide with anything but still left clicked, exit the dumpster dive menu
+                if not something_pressed:
+                    mode = 0
+
+        else:
+            left_button_pressed = False
     
-    # startx is determined by the hand area
-    # cardspace is determined by hand area too
-    startx = PLAYER_HAND_POS[0][0]
-    cardspace = 0.05
-    handcards = 0
-    # render cards in hand
-    for _id, card in player.hand_info.items():
-        if type(card) is tuple: # the tuple will be card number, card type
-            window.blit(CARDS[card[1]][card[0]], coords(startx+cardspace*handcards,PLAYER_HAND_POS[0][1]))
-            handcards += 1
+    else: # peek mode.
+        pass
 
-    # check for user actions
-    if pygame.mouse.get_pressed()[0]:
-        if not left_button_pressed:
-            # do collision detection
-            left_button_pressed = True
-            pos = pygame.mouse.get_pos()
-            
-            for r in HB_DRAW:
-                if r.collidepoint(pos):
-                    player.drawBTN()
-
-            if HB_DUMPSTER_DIVE.collidepoint(pos):
-                print("dumpster_dive")
-                # have the player select the card before sending information to the server.
-
-            for r in range(3):
-                if HB_PROVOKE[r].collidepoint(pos):
-                    player.provokeBTN(r)
-
-    else:
-        left_button_pressed = False
-    
-    
     # update display at the end of each loop
     pygame.display.update()
 
-# call the destructor and sends the disconnect message to the server
-del player
 pygame.quit()
+player.disconnect()
+sys.exit() 

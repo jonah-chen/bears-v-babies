@@ -24,7 +24,7 @@ Game::Game(unsigned long long seed) : turn(), int_turn()
         hand[py].push_back(c.id);
     }
     
-    auto shuffle = [this](unsigned char type, unsigned char number)
+    auto shuffle = [&](unsigned char type, unsigned char number)
     {
         Card tmp(type, number);
         lut.insert({tmp.id, tmp});

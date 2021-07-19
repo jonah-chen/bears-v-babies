@@ -100,7 +100,7 @@ struct Monster
 //template <unsigned char NUM_PLAYERS=5>
 class Game
 {
-    static constexpr unsigned char baby_strengths[9] {2,1,0,2,2,3,1,1,3};
+    static constexpr unsigned char baby_strengths[9] {1,2,2,0,3,1,1,2,3};
 
     std::unordered_map<unsigned int, Card> lut; // lookup table is the only placer where the cards are stored on the server
 

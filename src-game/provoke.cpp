@@ -25,7 +25,7 @@ unsigned char Game::provoke(unsigned char type)
     // calculate baby army strength
     for (unsigned int id : babies[TYPE(type)])
         b_strength += baby_strengths[lut.at(id).number];
-
+    std::cout << "bstrength is " << (int)b_strength << std::endl;
     for (int py = 0; py < 5; ++py)
     {
         // calculate the player's army strength for that type
@@ -70,6 +70,8 @@ unsigned char Game::provoke(unsigned char type)
         for (unsigned int b : babies[TYPE(type)])
             lut.at(b).owner = b_py + 1;
         score[b_py].insert(score[b_py].end(), babies[TYPE(type)].begin(), babies[TYPE(type)].end());
+        babies[TYPE(type)].clear();
+        return 19;
     }
 
     // tie, babies remain

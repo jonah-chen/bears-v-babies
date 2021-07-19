@@ -99,7 +99,7 @@ unsigned char Game::_play(unsigned char input[16])
     case DUMPSTER_DIVE:
         if (lut.find(target)==lut.end())
         {
-            std::cout << "the primary target is not a valid card in the game\n";
+            std::cout << "the primary target " << target << " is not a valid card in the game\n";
             return 0;
         }
         return dumpster_dive(target);
