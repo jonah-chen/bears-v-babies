@@ -92,9 +92,8 @@ struct Monster
     [[nodiscard]] unsigned char strength() const;
     // kills the monster by removing all parts to the dumpster
     void kill(std::unordered_map<unsigned int, Card>& lut, std::set<unsigned int>& dumpster) const;
-
-    friend std::ostream& operator<<(std::ostream& os, const Monster& monster);
     
+    friend std::ostream& operator<<(std::ostream& os, const Monster& monster);
 };
 
 //template <unsigned char NUM_PLAYERS=5>

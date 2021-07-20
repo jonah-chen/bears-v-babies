@@ -8,7 +8,6 @@ import pygame
 import sys
 
 from client import Player
-from threading import Thread
 
 # Default Resolution
 WIDTH = 1920
@@ -42,8 +41,12 @@ def set_res(width):
 
 # Some Constants
 
+RIGHT = -90
+LEFT = 90
+
 CARD_SIZE = (0.12,0.23)
 CARD_SIZE_S = (0.09,0.175)
+MID_TOPLEFT = 0.5 - CARD_SIZE[0]/2
 X_FIT = 8
 Y_FIT = 4
 
@@ -83,7 +86,7 @@ if args.tps:
 # Initialize pygame
 pygame.init()
 window = pygame.display.set_mode(coords(1,1))
-pygame.display.set_caption("Bears versus Babies Client version 0.0.2")
+pygame.display.set_caption("Bears versus Babies Client version Beta 1.0")
 font = pygame.font.SysFont("comicsans", 32, True)
 bigfont = pygame.font.SysFont("comicsans", 96, True)
 clock = pygame.time.Clock()
@@ -143,6 +146,17 @@ CARDS = {
     239: load_card('lAND', 9)
 }
 
+_HAT_POS = (MID_TOPLEFT, 0.05)
+_HEAD_POS = (MID_TOPLEFT, _HAT_POS[1]+CARD_SIZE[1])
+_BODY_POS = (MID_TOPLEFT, _HEAD_POS[1]+CARD_SIZE[1])
+_LEG_POS = (MID_TOPLEFT, _BODY_POS[1]+CARD_SIZE[1])
+_MASK_POS = (MID_TOPLEFT+CARD_SIZE[0]+ 0.02, _HEAD_POS[1])
+_L_ARM_POS = (MID_TOPLEFT-CARD_SIZE[1]*9/16-0.01, _BODY_POS[1])
+_R_ARM_POS = (_BODY_POS[0]+CARD_SIZE[0]*9/16+0.01, _BODY_POS[1])
+_L_TOOL_POS = (_L_ARM_POS[0]-CARD_SIZE[1]*9/16-0.01, _L_ARM_POS[1])
+_R_TOOL_POS = (_R_ARM_POS[0]+CARD_SIZE[1]*9/16+0.01, _R_ARM_POS[1])
+
+
 CARD_BACK = pygame.transform.scale(
                 pygame.image.load(os.path.join("assets", "back.png")),
                 coords(CARD_SIZE))
@@ -166,12 +180,14 @@ PLY_INDICATOR_Y = 0.97
 
 # create card sprites
 class Card(pygame.sprite.Sprite):
-    def __init__(self, card_id, card, pos):
+    def __init__(self, card_id, card, pos, rot=0, loc=0, surf=None):
         """Initializes with the card (number,type) and RELATIVE position pos"""
         super().__init__()
         self.id = card_id
-        self.image = CARDS[card[1]][card[0]]
+        img = surf if surf else CARDS[card[1]][card[0]]
+        self.image = pygame.transform.rotate(img, rot) if rot else img
         self.rect = self.image.get_rect(topleft=coords(pos))
+        self.loc = loc
 
     def click(self, player):
         player.playcard(self.id)
@@ -180,7 +196,8 @@ class Card(pygame.sprite.Sprite):
         player.t1 = self.id
     
     def select2(self, player):
-        player.t2 = self.id
+        if player.t1 != self.id:
+            player.t2 = self.id
 
 
 def get_dumpster_sprite(dumpster_bidict, page=0):
@@ -198,11 +215,31 @@ def get_dumpster_sprite(dumpster_bidict, page=0):
                 spt = Card(_id,card,(xpos,ypos))
                 disp_cards.add(spt)
             elif count == ipp*(page+1):
-                disp_cards.add(Card(-1,CARD_BACK,(xpos,ypos)))
+                disp_cards.add(Card(-1,None,(xpos,ypos), surf=CARD_BACK))
                 break
         _count += 1
 
     return disp_cards
+
+def get_loc_rot(rel_owner, count):
+    if rel_owner == 0:
+        rot = 0
+        loc = (PLAYER_BOARD_POS[0][0]+ count*CARD_SIZE[0], PLAYER_BOARD_POS[0][1])
+    elif rel_owner == 1:
+        rot = LEFT
+        loc = (EAST_POS[0][0], EAST_POS[1][1] - (count+1)*CARD_SIZE[0]*16/9)
+    elif rel_owner == 2:
+        rot = 180
+        loc = (NORTH_POS[1][0] - (count+1)*CARD_SIZE[0], NORTH_POS[0][1])
+    elif rel_owner == 3:
+        rot = 180
+        loc = (SOUTH_POS[1][0] - (count+1)*CARD_SIZE[0], SOUTH_POS[0][1])
+    elif rel_owner == 4:
+        rot = RIGHT
+        loc = (WEST_POS[0][0], WEST_POS[0][1] + count*CARD_SIZE[0]*16/9)
+    else:
+        raise ValueError(f"relative owner of {rel_owner} cannot exist")
+    return loc, rot
 
 
 # Initialize the client and connect to server
@@ -211,6 +248,7 @@ player = Player(args.game_code)
 # Start the GUI
 running = True
 left_button_pressed = False
+right_button_pressed = False
 selected_card = None # This is the card that is selected on the previous frame.
 
 mode = 0
@@ -225,14 +263,27 @@ while running:
             running = False
             break
         if event.type == pygame.KEYDOWN:
-            # pressing escape will return to normal mode
-            if event.key == pygame.K_ESCAPE:
+            # pressing backspace will return to normal mode
+            if event.key == pygame.K_BACKSPACE:
                 mode = 0
+            # pressing escape will unselect all cards
+            if event.key == pygame.K_ESCAPE:
+                player.t1 = 0
+                player.t2 = 0
+                player.tt = 0
+                player.td = 1
+            if event.key == pygame.K_l:
+                player.td = 1
+            if event.key == pygame.K_r:
+                player.td = 3
+            
     if not running:
         break
     
     # acquire mouse position
     pos = pygame.mouse.get_pos()
+    # acquire mouse action
+    mouse = pygame.mouse.get_pressed()
 
     # render
     if mode == 0: # normal mode
@@ -240,10 +291,47 @@ while running:
         window.blit(BACKGROUND, (0,0))
         window.blit(GAME_BOARD, coords(MAIN_BOARD_POS[0]))
 
-        # startx is determined by the hand area
+        head_group = pygame.sprite.Group()
+        __count = [0]*5
+        # render board (only heads)
+        for m_id, h in list(player.monster_info.items()):
+            if type(h) is str and m_id-0x40 in player.monster_info: # headless monster
+                remains = player.monster_info[m_id-0x40]
+                owner = 128 - list(remains.values())[0][2]
+                rel_owner = (5 + owner - player.player_no) % 5
 
-        # cardspace is determined by hand area too
+                # render the upside down card because it is headless
+                loc, rot = get_loc_rot(rel_owner, __count[rel_owner])
+                head_group.add(Card(-1, None, loc, rot, m_id, surf=CARD_BACK))
+                __count[rel_owner] += 1
+            
+            if m_id >= 0x80 and type(h) is tuple: # indicates this is a complete head
+                owner = 128 - h[2]
+                masked = False
+                rel_owner = (5 + owner - player.player_no) % 5
+                
+                loc, rot = get_loc_rot(rel_owner, __count[rel_owner])
+                # check if it is masked. if so, do not render.
+                if m_id-0x40 in player.monster_info:
+                    for card in list(player.monster_info[m_id-0x40].values()):
+                        if type(card) is tuple and card[1] == 4 and owner != player.player_no:
+                            masked = True
+                
+                if masked:
+                    # render the mask card
+                    head_group.add(Card(h[3],(0,4), loc, rot, m_id))
+                else:
+                    # render the head card
+                    head_group.add(Card(h[3], h, loc, rot, m_id))
+                    
+                __count[rel_owner] += 1
+
+        head_group.draw(window)
+
+        
+        # startx is determined by the hand area
         startx = PLAYER_HAND_POS[0][0]
+        # cardspace is determined by hand area too
         card_space = 0.05
         card_counter = 0
         
@@ -255,21 +343,29 @@ while running:
                 hand_cards.append(spt)
                 window.blit(spt.image, spt.rect) 
                 card_counter += 1
+
         # select the main card to display on top
-        
         # if the selected card doesn't exist or if the mouse is no longer over it, update it
         # otherwise do nothing for this step
-        
+
+        # for cards on board
+        for card in head_group:
+            if card.rect.collidepoint(pos):
+                selected_card = card
+                break
+        # for cards in hand
         if selected_card is not None and not selected_card.rect.collidepoint(pos):
             selected_card = None
         if selected_card is None:
             for card in hand_cards[::-1]:
                 if card.rect.collidepoint(pos):
-                    # this card is the card selected. 
-                    # draw a red rectangle around it and render it on top, including the hitbox.
                     selected_card = card
                     break
+
+
         # display on top
+        # this card is the card selected. 
+        # draw a red rectangle around it and render it on top, including the hitbox.
         if selected_card is not None:
             pygame.draw.rect(window, (255,255,255), selected_card.rect, width=0)
             pygame.draw.rect(window, (255,0,0), selected_card.rect, width=3)
@@ -284,10 +380,10 @@ while running:
             except TypeError:
                 print("Something really bad happened with", _pos)
             card_counter += 1
-            if card_counter > 32:
+            if card_counter > 32: # display max 32 dumpster cards visible on board
                 break
         
-        # render babies
+        # render babies face down
         for i in range(player.land_count):
             _loc = rect_c(LAND_BABY_ARMY, MAIN_BOARD_POS)
             window.blit(CARD_BACK_S, (_loc[0],_loc[1]+i*WIDTH*BABY_SPACE))
@@ -303,7 +399,7 @@ while running:
         window.blit(score_text, (0,0))
 
         # check for user actions
-        if pygame.mouse.get_pressed()[0]:
+        if mouse[0]:
             if not left_button_pressed:
                 # do collision detection
                 left_button_pressed = True
@@ -320,11 +416,32 @@ while running:
                         player.provokeBTN(r)
 
                 if selected_card is not None:
-                    selected_card.click(player)
+                    if selected_card.loc == 0:
+                        selected_card.click(player)
+                    elif selected_card.loc >= 0x80:
+                        mode = -selected_card.loc
                     selected_card = None
                 
         else:
             left_button_pressed = False
+        
+        if mouse[2]:
+            if not right_button_pressed:
+                for r in range(3):
+                    if HB_PROVOKE[r].collidepoint(pos):
+                        player.tt = {0: 17, 1: 19, 2: 23}[r]
+                        break
+
+                if selected_card is not None:
+                    if not player.t1:
+                        selected_card.select1(player)
+                    elif not player.t2:
+                        selected_card.select2(player)
+                    else:
+                        print("kind reminder that you've selected two cards already. time to play something or unselect using the ESC key.")
+        else:
+            right_button_pressed = False
+
 
 
         # render turn and ply indicators on the very top
@@ -341,7 +458,7 @@ while running:
         dumpster_cards = get_dumpster_sprite(player.dumpster_info, page=mode-1)
         dumpster_cards.draw(window)
         
-        if pygame.mouse.get_pressed()[0]:
+        if mouse[0]:
             if not left_button_pressed:
                 left_button_pressed = True
                 
@@ -363,7 +480,84 @@ while running:
             left_button_pressed = False
     
     else: # peek mode.
-        pass
+        # render all of players own monster heads
+        window.fill((96,96,96))
+
+        head_id = -mode # for the head
+        monster_id = head_id - 0x40
+        masked = False
+        arms = True
+        larm, ltool = False, False
+        
+        _monster = pygame.sprite.Group()
+        # head first
+
+        if monster_id in player.monster_info:
+            for _id, card in player.monster_info[monster_id].items():
+                owner = 128 - card[2]
+                if card[1] == 3:
+                    _monster.add(Card(_id, card, _HAT_POS))
+                elif card[1] == 4:
+                    if owner != player.player_no:
+                        masked = True
+                        _monster.add(Card(_id, card, _HEAD_POS))
+                    else:
+                        _monster.add(Card(_id, card, _MASK_POS))
+                elif card[1] <= 11 and card[1] >= 8:
+                    _monster.add(Card(_id, card, _BODY_POS))
+                    if card[1] == 9 or card[1] == 10:
+                        arms = False
+                elif card[1] == 12:
+                    _monster.add(Card(_id, card, _LEG_POS))
+                elif card[1] == 13:
+                    if larm:
+                            # add to right
+                        _monster.add(Card(_id, card, _R_ARM_POS, RIGHT))
+                    else:
+                        larm = True
+                        _monster.add(Card(_id, card, _L_ARM_POS, LEFT))
+                elif card[1] == 1:
+                    if arms:
+                        if ltool:
+                            _monster.add(Card(_id, card, _R_TOOL_POS, RIGHT))
+                        else:
+                            ltool = True
+                            _monster.add(Card(_id, card, _L_TOOL_POS, LEFT))
+                    else:
+                        if larm:
+                            # add to right
+                            _monster.add(Card(_id, card, _R_ARM_POS, RIGHT))
+                        else:
+                            larm = True
+                            _monster.add(Card(_id, card, _L_ARM_POS, LEFT))
+                else:
+                    print(f"error: card type {card[1]} cannot be part of a monster")
+                    
+        if not masked:
+            _head = player.monster_info[head_id]
+            if _head == 'headless':
+                _monster.add(Card(-1,None,_HEAD_POS,surf=CARD_BACK))
+            _monster.add(Card(_head[3], _head, _HEAD_POS))
+        
+        _monster.draw(window)
+
+        # reuse masked variable for clicked
+        masked = False
+        for card in _monster:
+            if card.rect.collidepoint(pos):
+                if mouse[0] or mouse[2]:
+                    masked = True
+                    if not player.t1:
+                        card.select1(player)
+                    elif not player.t2:
+                        card.select2(player)
+                    else:
+                        print("kind reminder that you've selected two cards already. time to play something or unselect using the ESC key.")
+                    break
+        
+        if mouse[0] and not masked:
+            mode = 0
+
 
     # update display at the end of each loop
     pygame.display.update()

@@ -22,13 +22,12 @@ python client.py [code]
 2. Server networking using python socket mainly complete, including the communitation protocalls.
 3. Client sending complete. Clients can download but the downloaded data are yet to be processed.
 4. Basic prototype level security. Numbers are **very** small and simple algorithms used for testing purposes.
-
+5. Write server and client programs.
+6. Implement the GUI for the client.
 ### TODO
 
-1. Write server and client programs.
-2. Implement the GUI for the client.
-3. Debug and test
-
+1. Debug and test
+2. Improvements
 
 ### References
 

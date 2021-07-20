@@ -143,6 +143,8 @@ Card& Game::query (unsigned int id)
 {
     if (lut.find(id) != lut.end())
         return lut.at(id);
+    std::cout << "your card at " << id << " is not in the game\n";
+    throw "";
 }
 
 std::vector<std::vector<unsigned int>> Game::fetch_public()

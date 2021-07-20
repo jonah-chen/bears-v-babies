@@ -1,13 +1,6 @@
 #include "server.hpp"
 unsigned char Game::play_lullaby(unsigned int lullaby, unsigned char type)
 {
-    // discard lullaby card
-    if (!discard(lullaby))
-    {
-        std::cout << "you do not own this card";
-        return 0;
-    }
-
     unsigned char _ty = TYPE(type);
     if (_ty == 3)
     {
@@ -20,6 +13,13 @@ unsigned char Game::play_lullaby(unsigned int lullaby, unsigned char type)
     if (!num_babies)
     {
         std::cout << "cannot lullaby 0 babies\n";
+        return 0;
+    }
+    
+    // discard lullaby card
+    if (!discard(lullaby))
+    {
+        std::cout << "you do not own this card";
         return 0;
     }
 
