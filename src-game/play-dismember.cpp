@@ -16,7 +16,6 @@ unsigned char Game::play_dismember(unsigned int dismember, unsigned int target)
     }
 
     lut.at(target).owner = DUMPSTER;
-
     for (int i = 0; i < 5; ++i) // iterate through all five players
     {
         for (auto it = board[i].begin(); it != board[i].end(); ++it) // iterate over all monsters owned by a given player
@@ -38,14 +37,21 @@ unsigned char Game::play_dismember(unsigned int dismember, unsigned int target)
                         // remove the part from the monster
                         m[j] = NID;
 
-                        if (j == 0) // if the head gets chopped off
+                        if (j == 0) // if the head gets chopped off, the monster is disabled and the mask is chopped off too
+                        {
                             it->type = NONE;
-
+                            if (it->mask!=NID) // oops almost had a major bug here
+                            {
+                                dumpster.insert(it->mask);
+                                lut.at(it->mask).owner = DUMPSTER;
+                                it->mask = NID;
+                            }
+                        }
                         discard(dismember); // discard the dismember card
                         dumpster.insert(target); // move the target to dumpster
-
                         // check if the monster is fully dead. if not return
-                        for (int j = 0; j < 9; ++j)
+
+                        for (j = 0; j < 9; ++j)
                             if (m[j] != NID)
                                 return 1;
 

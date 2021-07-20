@@ -24,8 +24,7 @@ unsigned char Game::provoke(unsigned char type)
     unsigned char b_strength = 0, py_strength, max_strength = 1, b_py = 8;
     // calculate baby army strength
     for (unsigned int id : babies[TYPE(type)])
-        b_strength += baby_strengths[lut.at(id).number];
-    std::cout << "bstrength is " << (int)b_strength << std::endl;
+        b_strength += baby_strengths[lut.at(id).number]; 
     for (int py = 0; py < 5; ++py)
     {
         // calculate the player's army strength for that type

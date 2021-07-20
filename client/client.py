@@ -28,6 +28,8 @@ class Player:
         # targets
         self.t1 = 0
         self.t2 = 0
+        self.tt = 0
+        self.td = 1
 
         # card info that the player knows about
         self.hand_info = bidict()
@@ -63,7 +65,7 @@ class Player:
         """Listening always listens to five byte packets from the server"""     
         while 1:
             msg = self.client.recv(5)
-            print(msg)
+            # print(msg)
             if not msg:
                 print("Connection to the server is lost.")
                 sys.exit()
@@ -102,19 +104,39 @@ class Player:
                 self.land_count = msg[1]
                 self.sea_count = msg[2]
                 self.sky_count = msg[3]
+
             elif msg[0] == 0x3a:
-                self.ply = msg[1]
-                if self.turn != msg[2]:
+                if self.ply != msg[1] or self.turn != msg[2]:
+                    self.ply = msg[1]
                     self.turn = msg[2]
                     # new turn -> reset stuff
                     self.dumpster_info.clear() # reset dumpster
+                    self.monster_info.clear() # reset monster info (i.e. if they die to provoke)
+
             elif msg[0] >= 0x40 and msg[0] < 0x80:
-                self.monster_info[msg[0]].add(int.from_bytes(msg[1:5],"little"))
+                if not msg[0] in self.monster_info: # if it is the first card for monster
+                    self.monster_info[msg[0]] = bidict()
+                if not msg[0]+0x40 in self.monster_info: # if the monster is headless
+                    self.monster_info[msg[0]+0x40] = 'headless'
+                self.monster_info[msg[0]][int.from_bytes(msg[1:5],"little")] = self.rng
+                self.client.send(bytes([0x20,msg[0],self.rng,self.pwd]) + msg[1:5] + b'\x00'*8)
+                self.rng = (self.rng + 1) % 256
+
             elif msg[0] >= 0x80 and msg[0] < 0xc0:
-                self.monster_info[msg[0]] = {int.from_bytes(msg[1:5],"little")}
+                if int.from_bytes(msg[1:5],"little") == 0:
+                    self.monster_info[msg[0]] = 'headless'
+                else:
+                    self.monster_info[msg[0]] = int.from_bytes(msg[1:5],"little")
+                    self.client.send(bytes([0x20,msg[0],self.rng,self.pwd]) + msg[1:5] + b'\x00'*8)
+                    self.rng = (self.rng + 1) % 256
+
             elif msg[0] >= 0xc0:
                 # need to do some rendering monsters to the screen
-                pass
+                # -0x80 for monster, -0x40 for head
+                if msg[0]-0x80 in self.monster_info and msg[4] in self.monster_info[msg[0]-0x80].inv:
+                    self.monster_info[msg[0]-0x80][self.monster_info[msg[0]-0x80].inv[msg[4]]] = (msg[1], msg[2], msg[3])
+                else:
+                    self.monster_info[msg[0]-0x40] = (msg[1], msg[2], msg[3], self.monster_info[msg[0]-0x40])
             
     def drawBTN(self):
         self.client.send(bytes([1, 0, 0, self.pwd]) + (b'\x00'*12))
@@ -135,8 +157,14 @@ class Player:
 
     
     def playcard(self, card):
-        self.client.send(bytes([2, 0, 1, self.pwd]) + card.to_bytes(4,"little") + self.t1.to_bytes(4,"little") + self.t2.to_bytes(4,"little"))
+        self.client.send(bytes([2, self.tt, self.td, self.pwd]) + card.to_bytes(4,"little") + self.t1.to_bytes(4,"little") + self.t2.to_bytes(4,"little"))
         self.hand_info.pop(card)
+        if self.t1 in self.hand_info:
+            self.hand_info.pop(self.t1)
+        self.t1 = 0
+        self.t2 = 0
+        self.tt = 0
+        self.td = 1
 
     
     def dumpster_dive(self, target):

@@ -1,4 +1,5 @@
 #include "server.hpp"
+#include <cstdlib>
 
 #define EXIST !=NID
 #define NEXIST ==NID
@@ -44,6 +45,7 @@ bool Monster::add_part(const Card& card, const unsigned char dir)
             rarm = card.id;
             return true;
         }
+        return false;
     // adding new tool
     case TOOL:
         if (dir==LEFT and ltool NEXIST and (larm EXIST or body_type==TORSO or body_type==M_BODY))

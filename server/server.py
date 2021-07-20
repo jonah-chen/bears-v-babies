@@ -1,9 +1,9 @@
 # Game
 from bearsvbabies import *
-from time import time_ns
 
 # Networking
 import socket
+from requests import get
 from threading import Thread
 from random import randint
 from utils import *
@@ -11,19 +11,44 @@ from utils import *
 # Logging
 import logging
 
+# parsing arguments
+import argparse
+
+
+def get_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # doesn't even have to be reachable
+        s.connect(('10.255.255.255', 1))
+        IP = s.getsockname()[0]
+    except Exception:
+        IP = '127.0.0.1'
+    finally:
+        s.close()
+    return IP
+
+
 class Game:
-    def __init__(self, seed=None, port=25511, verbose=1):
-        self.verbose = verbose
+    def __init__(self, seed=None, port=25500, public=True, public_port=None):
         # Start new game from seed
         if not seed:
-            seed = time_ns()
+            seed = randint(0, 0xffffffffffffffffffffffffffffffff)
         self.ptr = new_game(seed)
         
         logging.info(f"Game started at {hex(self.ptr)} with seed {hex(seed)}.")
         
         # Start server
         self.connection_key = randint(0, 0xffffffffffffffffffffffffffffffff)
-        self.addr = (socket.gethostbyname(socket.gethostname()), port)
+        if public: # find public ipv4
+            local_ip = get_ip()
+            self.addr = (local_ip, port)
+            self.public_ip = get('https://api.ipify.org').text
+        else: # running offline
+            self.addr = (socket.gethostbyname(socket.gethostname()), port)
+            self.public_ip = self.addr[0]
+        
+        self.public_port = public_port if public_port else port # if public and private port is the same
+
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind(self.addr)
 
@@ -158,8 +183,10 @@ Server messages: Fixed width (5 bytes)
                 # query request
                 if (msg[0] == 0x20):
                     # send back the card details
+                    if int.from_bytes(msg[4:8],"little") == 0:
+                        raise ValueError(f"cannot fetch the card of nonexistent head of headless monster @{hex(msg[1])}.")
                     card_number, card_type, card_owner = peek(self.ptr, int.from_bytes(msg[4:8],"little"))
-                    
+
                     # determine the lead bit of the return message
                     if msg[1] >= 0x40 and msg[1] < 0x80:
                         lead = msg[1] + 0x80
@@ -252,10 +279,13 @@ Server messages: Fixed width (5 bytes)
         # ip consists of 4 bytes or 32 bits
         # connection message is 16 bytes or 128 bits
         # port is 2 bytes or 16 bits
-        ip = list(map(lambda x: int(x), self.addr[0].split('.')))
-        logging.debug(f"IP is {ip}")
+        priv_ip = list(map(lambda x: int(x), self.addr[0].split('.')))
+        ip = list(map(lambda x: int(x), self.public_ip.split('.')))
+        logging.info(f"Private IP is {priv_ip}, Public IP is {ip}.")
+        if priv_ip != ip:
+            logging.warning(f"You must forward private port {self.addr[1]} to public port {self.public_port}.")
         return convert_62_f((self.connection_key << 16) + 
-                            (self.addr[1] << 152) + 
+                            (self.public_port << 152) + 
                             (ip[0] << 8) + 
                             (ip[1] << 144) + 
                             (ip[2]) + 
@@ -264,8 +294,32 @@ Server messages: Fixed width (5 bytes)
 
 
 if __name__ == '__main__':
-    logging.basicConfig(format='%(asctime)s.%(msecs)03d %(message)s', datefmt='%Y-%m-%d,%H:%M:%S', level=logging.DEBUG) 
-    try:
-        g = Game(seed=0x16931d24fdf3e992)
-    except OSError:
-        g = Game(port=25500, seed=0x16931d24fdf3e992)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--port", "-p", default=25510, help="private port, defaults to 25510.")
+    parser.add_argument("--PORT", "-P", default=25510, help="public port, defaults to 25510.")
+    parser.add_argument("-log", "--log", default="warning", help="provide logging level. defaults to warning.")
+    options = parser.parse_args()
+    levels = {
+        'critical': logging.CRITICAL,
+        'error': logging.ERROR,
+        'warn': logging.WARNING,
+        'warning': logging.WARNING,
+        'info': logging.INFO,
+        'debug': logging.DEBUG
+    }
+    level = levels.get(options.log.lower())
+    if level is None:
+        raise ValueError(
+            f"log level given: {options.log}"
+            f" -- must be one of: {' | '.join(levels.keys())}")
+
+    logging.basicConfig(format='%(asctime)s.%(msecs)03d %(message)s', datefmt='%Y-%m-%d,%H:%M:%S', level=level)
+
+    if options.port == 'offline':
+        g = Game(public=False, port=int(options.PORT))
+    else:
+        try:
+            g = Game(port=int(options.port), public_port=int(options.PORT))
+        except OSError:
+            logging.warning("trying again on port 25500")
+            g = Game()
