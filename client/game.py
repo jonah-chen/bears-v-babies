@@ -86,7 +86,7 @@ if args.tps:
 # Initialize pygame
 pygame.init()
 window = pygame.display.set_mode(coords(1,1))
-pygame.display.set_caption("Bears versus Babies Client version Beta 1.0")
+pygame.display.set_caption("Bears versus Babies Client version Beta 1.1")
 font = pygame.font.SysFont("comicsans", 32, True)
 bigfont = pygame.font.SysFont("comicsans", 96, True)
 clock = pygame.time.Clock()

@@ -19,6 +19,9 @@ class Player:
         self.client.connect(self.addr)
         self.client.send(self.connect_code)
         f_msg = self.client.recv(2)
+        if not f_msg:
+            print("The game is full. Please try connecting later")
+            sys.exit()
         self.pwd = f_msg[0]
         self.player_no = f_msg[1] + 1 # 1 indexed
         if not self.pwd:

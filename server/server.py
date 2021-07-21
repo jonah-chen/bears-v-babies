@@ -7,6 +7,7 @@ from requests import get
 from threading import Thread
 from random import randint
 from utils import *
+from time import sleep
 
 # Logging
 import logging
@@ -60,6 +61,7 @@ class Game:
         
         self.connections = []
         self.user_map = {} # ZERO INDEXED!!!
+        self.recycle = []
 
         self.start()
 
@@ -145,6 +147,8 @@ Server messages: Fixed width (5 bytes)
         
         # Client verified. Establish connection.
         pwd = connect(self.ptr)
+        if not pwd and self.recycle:
+            pwd = self.recycle.pop()
         if pwd:
             conn.send(bytes([pwd % 256, (pwd >> 8)]))
             # fifth user has connected. game is about to start so broadcast public info
@@ -169,7 +173,7 @@ Server messages: Fixed width (5 bytes)
             msg = conn.recv(16)
             logging.info(f"recieved {msg} from {addr}")            
             if not conn in self.connections:
-                logging.error(f"Connection at {addr} not in the connections list.")
+                logging.error(f"Connection at {addr} not in the connections list. This means the connection is missing or kicked by the server.")
                 conn.close()
                 return
             if msg:
@@ -177,6 +181,7 @@ Server messages: Fixed width (5 bytes)
                 if (msg == (b'\xff'*16)):
                     logging.warning(f"{addr} disconnected voluntarily")
                     self.connections.remove(conn)
+                    self.recycle.append(pwd)
                     conn.close()
                     return
                 
