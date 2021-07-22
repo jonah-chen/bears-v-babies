@@ -1,7 +1,6 @@
 #include "server.hpp"
 #include <iomanip>
 #define REP(I) for (int i = 0; i < (I); ++i)
-#define FORP for (int py = 0; py < 5; ++py)
 
 std::ostream& operator<<(std::ostream& os, const Card& card)
 {
@@ -50,7 +49,7 @@ std::ostream& operator<<(std::ostream& os, const Game& game)
     // (some)invisible info
 
     os << "\nPLAYER INFO:\n";
-    FORP
+    for (int py = 0; py < game.NUM_PLAYERS; ++py)
     {
         os << "p" << py << ": score=" << game.score[py].size() << ", strength:";
         REP(3)

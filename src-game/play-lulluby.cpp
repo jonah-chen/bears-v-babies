@@ -1,4 +1,5 @@
 #include "server.hpp"
+
 unsigned char Game::play_lullaby(unsigned int lullaby, unsigned char type)
 {
     unsigned char _ty = TYPE(type);

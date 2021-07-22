@@ -1,4 +1,5 @@
 #include "server.hpp"
+
 unsigned char Game::dumpster_dive(unsigned int target)
 {
     if (int_turn > 0)
@@ -24,9 +25,9 @@ unsigned char Game::dumpster_dive(unsigned int target)
         return 19;
 
     default:
-        hand[turn % 5].push_back(*found);
+        hand[CUR_PLAYER_ZERO_INDEX].push_back(*found);
         dumpster.erase(found);
-        lut.at(*found).owner = (turn % 5) + 1;
+        lut.at(*found).owner = CUR_PLAYER;
         return 19;
     }
 }

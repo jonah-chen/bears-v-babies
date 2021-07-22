@@ -54,6 +54,12 @@
 #define PROVOKE 200
 #define DUMPSTER_DIVE 240
 
+#define CUR_PLAYER ((turn % NUM_PLAYERS) + 1)
+#define CUR_PLAYER_ZERO_INDEX (turn % NUM_PLAYERS)
+// remove card from current hand
+#define REMOVE(CARD) hand[CUR_PLAYER_ZERO_INDEX].erase(std::remove(hand[CUR_PLAYER_ZERO_INDEX].begin(),hand[CUR_PLAYER_ZERO_INDEX].end(),CARD),hand[CUR_PLAYER_ZERO_INDEX].end())
+
+
 struct Card
 {
     unsigned char type, number;
@@ -96,10 +102,10 @@ struct Monster
     friend std::ostream& operator<<(std::ostream& os, const Monster& monster);
 };
 
-//template <unsigned char NUM_PLAYERS=5>
 class Game
 {
     static constexpr unsigned char baby_strengths[9] {1,2,2,0,3,1,1,2,3};
+    unsigned char NUM_PLAYERS; // number of players in the game can be from 2 to 5
 
     std::unordered_map<unsigned int, Card> lut; // lookup table is the only placer where the cards are stored on the server
 
@@ -109,10 +115,12 @@ class Game
     unsigned char turn, int_turn, pwds[5];
     bool ready;
 
+    // private helper functions
     bool discard(unsigned int id);
+    unsigned char _play(unsigned char input[16]);
 
     // player actions
-    inline unsigned char draw(void) { return draw(turn % 5) == 255 ? 255 : 1; }
+    inline unsigned char draw(void) { return draw(CUR_PLAYER_ZERO_INDEX) == 255 ? 255 : 1; }
 
     unsigned char provoke(unsigned char type);
 
@@ -126,21 +134,18 @@ class Game
 
 
 public:
-    /* Game constructed with a seed for the RNG
-     */
-    Game(unsigned long long seed);
+    // Game constructed with a seed for the RNG
+    Game(unsigned long long seed, unsigned char NUM_PLAYERS=5);
 
     /* Draws a card from the deck.
      * Return values:
      * 0 - the card went into player's hand
      * 1 - baby card was drawn and automatically placed into the middle
-     * 2 - wild provoke was drawn and further actions are required
+     * 255 - wild provoke was drawn and further actions are required
      */
     unsigned char draw(unsigned char player);
 
-    /* One turn 
-     */
-    unsigned char _play(unsigned char input[16]);
+    // request to play turn 
     int play(unsigned char input[16]);
 
     // getters
@@ -152,8 +157,9 @@ public:
     inline unsigned int fetch_babies(void) { return babies[0].size() + (babies[1].size() << 8) + (babies[2].size() << 16); }
     inline std::set<unsigned int>& get_dumpster(void) { return dumpster; }
 
+    // connecting new players
     int connect(void);
     
-    // io
+    // print debug
     friend std::ostream& operator<<(std::ostream& os, const Game& game);
 };

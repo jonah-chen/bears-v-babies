@@ -34,7 +34,7 @@ class Game:
         # Start new game from seed
         if not seed:
             seed = randint(0, 0xffffffffffffffffffffffffffffffff)
-        self.ptr = new_game(seed)
+        self.ptr = new_game(seed, 5)
         
         logging.info(f"Game started at {hex(self.ptr)} with seed {hex(seed)}.")
         

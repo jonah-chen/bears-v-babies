@@ -1,5 +1,6 @@
 #include "server.hpp"
 #include <numeric>
+
 unsigned char Game::provoke(unsigned char type)
 {
     // error checking
@@ -25,7 +26,7 @@ unsigned char Game::provoke(unsigned char type)
     // calculate baby army strength
     for (unsigned int id : babies[TYPE(type)])
         b_strength += baby_strengths[lut.at(id).number]; 
-    for (int py = 0; py < 5; ++py)
+    for (int py = 0; py < NUM_PLAYERS; ++py)
     {
         // calculate the player's army strength for that type
         py_strength = 0;

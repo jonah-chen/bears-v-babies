@@ -5,9 +5,10 @@
 static PyObject* new_game (PyObject *self, PyObject *args)
 {
     unsigned long long seed;
-    if (!PyArg_ParseTuple(args, "K", &seed))
+    unsigned char num_players;
+    if (!PyArg_ParseTuple(args, "KB", &seed, &num_players))
         return nullptr;
-    Game *g = new Game(seed);
+    Game *g = new Game(seed, num_players);
     return Py_BuildValue("K", (unsigned long long)g);
 }
 

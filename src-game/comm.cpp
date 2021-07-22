@@ -1,17 +1,16 @@
+/* This file includes the functions required for the server to communicate with the client.
+ */
+
 #include "server.hpp"
 
-// The first byte (0) shall signify the action to be taken
-
-// the next byte (1) shall signify a type, if it exists
-
-// the next byte (2) shall signify a direction, if it exists and only required for direction RIGHT
-
-// the next byte (3) is the player ID, given to each player
-
-// the next four bytes (4) shall signify the primary target
-
-// the next eight bytes (8,12) shall signify two secondary targets
-
+/* COMMUNICATION PROTOCAL (CLIENT->SERVER)
+ * The first byte (0) shall signify the action to be taken
+ * the next byte (1) shall signify a type, if it exists
+ * the next byte (2) shall signify a direction, if it exists and only required for direction RIGHT
+ * the next byte (3) is the player ID, given to each player
+ * the next four bytes (4) shall signify the primary target
+ * the next eight bytes (8,12) shall signify two secondary targets
+ */
 unsigned char Game::_play(unsigned char input[16])
 {
     if (!ready)
@@ -20,7 +19,7 @@ unsigned char Game::_play(unsigned char input[16])
         return 0;
     }
 
-    if (input[3] != pwds[turn % 5])
+    if (input[3] != pwds[CUR_PLAYER_ZERO_INDEX])
     {
         std::cout << "the password is incorrect\n";
         return 0;
@@ -48,7 +47,7 @@ unsigned char Game::_play(unsigned char input[16])
             std::cout << "the primary target is not a valid card in the game\n";
             return 0;
         }
-        if (lut.at(target).owner != (turn % 5) + 1)
+        if (lut.at(target).owner != CUR_PLAYER)
         {
             std::cout << "you cannot play a card that you don't own\n";
             return 0;
@@ -110,7 +109,7 @@ unsigned char Game::_play(unsigned char input[16])
 
 int Game::play(unsigned char input[16])
 {
-    unsigned char p_turn = 2;
+    unsigned char p_turn = (NUM_PLAYERS==2) ? 4 : ((NUM_PLAYERS==3) ? 3 : 2);
     unsigned char output = _play(input);
     switch (output)
     {
@@ -122,7 +121,7 @@ int Game::play(unsigned char input[16])
     default:
         int_turn += output;
         // find how many turns a player has
-        for (Monster m : board[turn % 5])
+        for (Monster m : board[CUR_PLAYER_ZERO_INDEX])
         {
             if (m.ltool != NID)
                 p_turn++;
@@ -150,7 +149,7 @@ Card& Game::query (unsigned int id)
 std::vector<std::vector<unsigned int>> Game::fetch_public()
 {
     std::vector<std::vector<unsigned int>> monsters_list;
-    for (int py = 0; py < 5; ++py)
+    for (int py = 0; py < NUM_PLAYERS; ++py)
     {
         for (Monster m : board[py])
         {
@@ -181,19 +180,21 @@ int Game::connect()
     while (!pass)
         pass = rand();
 
-    unsigned char order[5] {0,1,2,3,4};
-    std::random_shuffle(order, order+5);
+    unsigned char order[5];
+    for (int py = 0; py < NUM_PLAYERS; ++py)
+        order[py] = py;
+    std::random_shuffle(order, order+NUM_PLAYERS);
 
-    for (unsigned char i : order)
+    for (int _i = 0; _i < NUM_PLAYERS; ++_i)
     {
-        if (!pwds[i])
+        if (!pwds[order[_i]])
         {
-            pwds[i] = pass;
-            for (unsigned char k : pwds)
-                if (!k)
-                    return pass + (i << 8);
+            pwds[order[_i]] = pass;
+            for (int k = 0; k < NUM_PLAYERS; ++k)
+                if (!pwds[k])
+                    return pass + (order[_i] << 8);
             ready = true;
-            return pass + (i << 8);
+            return pass + (order[_i] << 8);
         }
     }
     return 0;

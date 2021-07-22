@@ -1,10 +1,16 @@
 #include "server.hpp"
 #include <random>
 #define REP(I) for (int i = 0; i < (I); ++i)
-#define FORP for (int py = 0; py < 5; ++py)
+#define FORP for (int py = 0; py < NUM_PLAYERS; ++py)
 
-Game::Game(unsigned long long seed) : turn(), int_turn()
+Game::Game(unsigned long long seed, unsigned char NUM_PLAYERS) : NUM_PLAYERS(NUM_PLAYERS), turn(), int_turn()
 {
+    // check if the number of players are valid
+    if (NUM_PLAYERS > 5 or NUM_PLAYERS < 2)
+    {
+        std::cout << "It is not allowed to make a game with " << NUM_PLAYERS << " players.\n";
+        throw "";
+    }
 
     // set the game seed
     srand(seed);
@@ -94,7 +100,7 @@ Game::Game(unsigned long long seed) : turn(), int_turn()
 
 unsigned char Game::draw(unsigned char player)
 {
-    if (player > 4)
+    if (player >= NUM_PLAYERS)
     {
         std::cout << "invalid player cannot draw cards";
         return 0;
@@ -128,9 +134,9 @@ unsigned char Game::draw(unsigned char player)
 
 bool Game::discard(unsigned int id)
 {
-    if (lut.at(id).owner != (turn % 5) + 1)
+    if (lut.at(id).owner != CUR_PLAYER)
         return false;
-    hand[turn%5].erase(std::remove(hand[turn%5].begin(),hand[turn%5].end(),id),hand[turn%5].end());
+    REMOVE(id);
     lut.at(id).owner = DUMPSTER;
     dumpster.insert(id);
     return true;

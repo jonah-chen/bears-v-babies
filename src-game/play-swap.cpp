@@ -1,4 +1,5 @@
 #include "server.hpp"
+
 unsigned char Game::play_swap(unsigned int swap, unsigned int head1, unsigned int head2)
 {
     if (head1 == head2)

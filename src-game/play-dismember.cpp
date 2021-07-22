@@ -1,8 +1,9 @@
 #include "server.hpp"
+
 unsigned char Game::play_dismember(unsigned int dismember, unsigned int target)
 {
     // the card is played and discarded
-    if (lut.at(dismember).owner != (turn % 5) + 1)
+    if (lut.at(dismember).owner != CUR_PLAYER)
     {
         std::cout << "you do not own this card\n";
         return 0;
@@ -16,7 +17,7 @@ unsigned char Game::play_dismember(unsigned int dismember, unsigned int target)
     }
 
     lut.at(target).owner = DUMPSTER;
-    for (int i = 0; i < 5; ++i) // iterate through all five players
+    for (int i = 0; i < NUM_PLAYERS; ++i) // iterate through all five players
     {
         for (auto it = board[i].begin(); it != board[i].end(); ++it) // iterate over all monsters owned by a given player
         {
